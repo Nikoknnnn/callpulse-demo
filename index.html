@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CallPulse AI — AI Sales Call Analyzer</title>
+  <meta name="description" content="CallPulse AI listens to every sales call, scores every deal, and tells your reps exactly what to do next." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            ink: { 950: '#07080a', 900: '#0b0c10', 850: '#0f1015', 800: '#14151b', 700: '#1c1d25', 600: '#272833' },
+            pulse: { 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5' },
+          },
+          keyframes: {
+            wave: { '0%,100%': { transform: 'scaleY(.35)' }, '50%': { transform: 'scaleY(1)' } },
+            floaty: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+            marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+          },
+          animation: {
+            wave: 'wave 1.2s ease-in-out infinite',
+            floaty: 'floaty 5s ease-in-out infinite',
+            marquee: 'marquee 32s linear infinite',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { background: #07080a; }
+    .grid-bg {
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+    }
+    .glow {
+      background: radial-gradient(600px 300px at 50% 0%, rgba(99,102,241,.35), transparent 70%),
+                  radial-gradient(400px 260px at 80% 20%, rgba(168,85,247,.18), transparent 70%);
+    }
+    .text-gradient {
+      background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,.62) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .text-accent {
+      background: linear-gradient(90deg, #a5b4fc, #c084fc 50%, #f0abfc);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .border-gradient { position: relative; }
+    .border-gradient::before {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.03));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+    }
+    .border-gradient-accent::before {
+      background: linear-gradient(180deg, rgba(129,140,248,.8), rgba(192,132,252,.25) 40%, rgba(255,255,255,.04));
+    }
+    .card-hover { transition: transform .3s ease, background-color .3s ease; }
+    .card-hover:hover { transform: translateY(-2px); background-color: #111218; }
+    .spot { background: radial-gradient(300px circle at var(--x,50%) var(--y,50%), rgba(129,140,248,.10), transparent 60%); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .animate-wave, .animate-floaty, .animate-marquee, .animate-ping, .animate-pulse { animation: none !important; }
+    }
+  </style>
+</head>
+<body class="font-sans text-zinc-300 antialiased selection:bg-pulse-500/40 selection:text-white">
+
+  <!-- ============ NAV ============ -->
+  <header id="nav" class="fixed inset-x-0 top-0 z-50 transition-all duration-300">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <a href="#" class="flex items-center gap-2.5" aria-label="CallPulse AI home">
+        <span class="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-pulse-400 to-fuchsia-500 shadow-lg shadow-pulse-500/30">
+          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 h-[18px] w-[18px] text-white" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+        </span>
+        <span class="text-[15px] font-semibold tracking-tight text-white">CallPulse<span class="text-zinc-500"> AI</span></span>
+      </a>
+
+      <nav class="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
+        <a href="#product" class="transition hover:text-white">Product</a>
+        <a href="#features" class="transition hover:text-white">Features</a>
+        <a href="#customers" class="transition hover:text-white">Customers</a>
+        <a href="#pricing" class="transition hover:text-white">Pricing</a>
+      </nav>
+
+      <div class="hidden items-center gap-3 md:flex">
+        <a href="#" class="rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:text-white">Sign in</a>
+        <a href="#demo" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-ink-950 shadow-[0_0_0_1px_rgba(255,255,255,.1),0_8px_24px_-8px_rgba(255,255,255,.4)] transition hover:bg-zinc-200">Book a Demo</a>
+      </div>
+
+      <button id="menuBtn" class="grid h-10 w-10 place-items-center rounded-lg text-zinc-300 hover:bg-white/5 md:hidden" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <svg id="menuIcon" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+
+    <div id="mobileMenu" class="hidden border-t border-white/5 bg-ink-950/95 backdrop-blur-xl md:hidden">
+      <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm">
+        <a href="#product" class="rounded-lg px-3 py-2.5 text-zinc-300 hover:bg-white/5">Product</a>
+        <a href="#features" class="rounded-lg px-3 py-2.5 text-zinc-300 hover:bg-white/5">Features</a>
+        <a href="#customers" class="rounded-lg px-3 py-2.5 text-zinc-300 hover:bg-white/5">Customers</a>
+        <a href="#pricing" class="rounded-lg px-3 py-2.5 text-zinc-300 hover:bg-white/5">Pricing</a>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <a href="#" class="rounded-lg border border-white/10 px-3 py-2.5 text-center text-zinc-200">Sign in</a>
+          <a href="#demo" class="rounded-lg bg-white px-3 py-2.5 text-center font-medium text-ink-950">Book a Demo</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section id="product" class="relative overflow-hidden pt-32 sm:pt-40">
+      <div class="glow pointer-events-none absolute inset-0"></div>
+      <div class="grid-bg pointer-events-none absolute inset-0"></div>
+
+      <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <a href="#features" class="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.03] py-1 pl-1 pr-3 text-xs text-zinc-400 backdrop-blur transition hover:border-white/20 hover:text-zinc-200">
+            <span class="rounded-full bg-pulse-500/15 px-2 py-0.5 font-medium text-pulse-300">New</span>
+            Deal Risk Radar 2.0 is live
+            <svg class="h-3 w-3 transition group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </a>
+
+          <h1 class="mt-7 text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
+            <span class="text-gradient">Every sales call,</span><br />
+            <span class="text-accent">decoded in seconds.</span>
+          </h1>
+
+          <p class="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+            CallPulse AI listens to every conversation, scores every deal, and tells your reps exactly what to say next — so you close more pipeline without adding headcount.
+          </p>
+
+          <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a href="#demo" class="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-pulse-400 to-pulse-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_0_0_1px_rgba(129,140,248,.5),0_12px_40px_-10px_rgba(99,102,241,.8)] transition hover:brightness-110 sm:w-auto">
+              Book a Demo
+              <svg class="h-4 w-4 transition group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#pricing" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.03] px-6 py-3.5 text-sm font-medium text-zinc-200 backdrop-blur transition hover:border-white/20 hover:bg-white/[.06] sm:w-auto">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86A1 1 0 008 5.14z"/></svg>
+              Watch 2-min tour
+            </a>
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-zinc-500">
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>14-day free trial</span>
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>No credit card</span>
+            <span class="inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>SOC 2 Type II</span>
+          </div>
+        </div>
+
+        <!-- ============ DASHBOARD MOCKUP ============ -->
+        <div class="relative mx-auto mt-16 max-w-6xl sm:mt-20">
+          <div class="absolute -inset-x-10 -top-10 bottom-0 bg-gradient-to-b from-pulse-500/20 via-fuchsia-500/5 to-transparent blur-3xl"></div>
+
+          <div class="border-gradient relative overflow-hidden rounded-2xl bg-ink-900/90 shadow-2xl shadow-black/60 backdrop-blur" style="border-radius:1rem">
+            <!-- window chrome -->
+            <div class="flex items-center gap-3 border-b border-white/5 px-4 py-3">
+              <div class="flex gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+              </div>
+              <div class="mx-auto hidden items-center gap-2 rounded-md bg-white/[.04] px-3 py-1 font-mono text-[11px] text-zinc-500 sm:flex">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+                app.callpulse.ai/calls
+              </div>
+              <div class="ml-auto flex items-center gap-2 text-[11px] text-zinc-500 sm:ml-0">
+                <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span></span>
+                Live
+              </div>
+            </div>
+
+            <div class="grid lg:grid-cols-[220px_1fr]">
+              <!-- sidebar -->
+              <aside class="hidden border-r border-white/5 p-3 lg:block">
+                <div class="mb-3 flex items-center gap-2 rounded-lg px-2 py-1.5">
+                  <span class="grid h-6 w-6 place-items-center rounded-md bg-gradient-to-br from-amber-400 to-orange-600 text-[10px] font-bold text-white">N</span>
+                  <span class="text-xs font-medium text-zinc-200">Northbeam Sales</span>
+                </div>
+                <nav class="space-y-0.5 text-[13px]">
+                  <a class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-zinc-500"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Home</a>
+                  <a class="flex items-center gap-2.5 rounded-md bg-white/[.06] px-2 py-1.5 text-white"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>Calls<span class="ml-auto rounded bg-pulse-500/20 px-1.5 text-[10px] text-pulse-300">12</span></a>
+                  <a class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-zinc-500"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>Deals</a>
+                  <a class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-zinc-500"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0114 0M17 11a3 3 0 100-6M22 21a6 6 0 00-4-5.6"/></svg>Coaching</a>
+                  <a class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-zinc-500"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2 8 12.7 4 8.8l5.5-.8z"/></svg>Playbooks</a>
+                </nav>
+                <p class="mt-6 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Recent calls</p>
+                <div id="callList" class="mt-2 space-y-0.5 text-[12px]"></div>
+              </aside>
+
+              <!-- main panel -->
+              <div class="min-w-0 p-4 sm:p-6">
+                <!-- mobile call tabs -->
+                <div id="callTabs" class="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 lg:hidden"></div>
+
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 text-[11px] text-zinc-500">
+                      <span id="callStage" class="rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-400">Discovery</span>
+                      <span id="callMeta">Today · 34 min</span>
+                    </div>
+                    <h3 id="callTitle" class="mt-1.5 truncate text-base font-semibold text-white sm:text-lg">Acme Logistics — Q1 expansion</h3>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5">Share</button>
+                    <button class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-ink-950 transition hover:bg-zinc-200">Sync to CRM</button>
+                  </div>
+                </div>
+
+                <!-- stat row -->
+                <div class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div class="rounded-xl border border-white/5 bg-white/[.02] p-3.5">
+                    <p class="text-[11px] text-zinc-500">Deal score</p>
+                    <div class="mt-1 flex items-baseline gap-1.5"><span id="statScore" class="text-2xl font-semibold tabular-nums text-white">87</span><span id="statScoreDelta" class="text-[11px] font-medium text-emerald-400">+12</span></div>
+                    <div class="mt-2 h-1 overflow-hidden rounded-full bg-white/5"><div id="statScoreBar" class="h-full rounded-full bg-gradient-to-r from-pulse-400 to-fuchsia-400 transition-all duration-700" style="width:87%"></div></div>
+                  </div>
+                  <div class="rounded-xl border border-white/5 bg-white/[.02] p-3.5">
+                    <p class="text-[11px] text-zinc-500">Talk ratio</p>
+                    <div class="mt-1 flex items-baseline gap-1.5"><span id="statTalk" class="text-2xl font-semibold tabular-nums text-white">42%</span><span class="text-[11px] text-zinc-500">rep</span></div>
+                    <div class="mt-2 flex h-1 overflow-hidden rounded-full bg-white/5"><div id="statTalkBar" class="h-full bg-pulse-400 transition-all duration-700" style="width:42%"></div><div class="h-full flex-1 bg-zinc-600"></div></div>
+                  </div>
+                  <div class="rounded-xl border border-white/5 bg-white/[.02] p-3.5">
+                    <p class="text-[11px] text-zinc-500">Sentiment</p>
+                    <div class="mt-1 flex items-baseline gap-1.5"><span id="statSent" class="text-2xl font-semibold text-white">Positive</span></div>
+                    <p id="statSentSub" class="mt-1.5 text-[11px] text-emerald-400">↑ trending up after pricing</p>
+                  </div>
+                  <div class="rounded-xl border border-white/5 bg-white/[.02] p-3.5">
+                    <p class="text-[11px] text-zinc-500">Next steps</p>
+                    <div class="mt-1 flex items-baseline gap-1.5"><span id="statSteps" class="text-2xl font-semibold tabular-nums text-white">3</span><span class="text-[11px] text-zinc-500">detected</span></div>
+                    <p class="mt-1.5 text-[11px] text-zinc-500">Auto-drafted follow-up</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 grid gap-4 xl:grid-cols-[1fr_300px]">
+                  <!-- waveform + transcript -->
+                  <div class="rounded-xl border border-white/5 bg-white/[.02] p-4">
+                    <div class="flex items-center justify-between">
+                      <p class="text-xs font-medium text-zinc-300">Conversation timeline</p>
+                      <div class="flex items-center gap-3 text-[10px] text-zinc-500">
+                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-pulse-400"></span>Rep</span>
+                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-zinc-500"></span>Prospect</span>
+                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-400"></span>Objection</span>
+                      </div>
+                    </div>
+                    <div id="waveform" class="mt-4 flex h-20 items-center gap-[3px]"></div>
+                    <div class="mt-2 flex justify-between font-mono text-[10px] text-zinc-600"><span>00:00</span><span>08:30</span><span>17:00</span><span>25:30</span><span id="waveEnd">34:00</span></div>
+
+                    <div id="transcript" class="mt-4 space-y-3 border-t border-white/5 pt-4 text-[13px]"></div>
+                  </div>
+
+                  <!-- AI insights -->
+                  <div class="rounded-xl border border-pulse-500/20 bg-gradient-to-b from-pulse-500/[.08] to-transparent p-4">
+                    <div class="flex items-center gap-2">
+                      <span class="grid h-6 w-6 place-items-center rounded-md bg-pulse-500/20">
+                        <svg class="h-3.5 w-3.5 text-pulse-300" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+                      </span>
+                      <p class="text-xs font-medium text-white">Pulse AI insights</p>
+                    </div>
+                    <ul id="insights" class="mt-4 space-y-3 text-[12.5px] leading-relaxed"></ul>
+                    <button class="mt-4 w-full rounded-lg border border-white/10 bg-white/[.03] py-2 text-xs text-zinc-200 transition hover:bg-white/[.07]">Generate follow-up email →</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- floating badge -->
+          <div class="animate-floaty absolute -bottom-6 -left-2 hidden rounded-xl border border-white/10 bg-ink-850/90 p-3 shadow-2xl backdrop-blur md:block lg:-left-10">
+            <div class="flex items-center gap-3">
+              <span class="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/15 text-emerald-400">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+              </span>
+              <div><p class="text-[11px] text-zinc-500">Win rate this quarter</p><p class="text-sm font-semibold text-white">+31% <span class="font-normal text-zinc-500">vs. last</span></p></div>
+            </div>
+          </div>
+          <div class="animate-floaty absolute -right-2 top-24 hidden rounded-xl border border-white/10 bg-ink-850/90 p-3 shadow-2xl backdrop-blur lg:-right-10 lg:block" style="animation-delay:-2.5s">
+            <p class="text-[11px] text-zinc-500">Risk alert</p>
+            <p class="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-white"><span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>Competitor mentioned 3×</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SOCIAL PROOF ============ -->
+    <section id="customers" class="relative pt-28 pb-8 sm:pt-36">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <p class="text-center text-sm text-zinc-500">Trusted by 2,400+ revenue teams at fast-growing companies</p>
+        <div class="relative mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]">
+          <div id="logoTrack" class="animate-marquee flex w-max items-center gap-14 sm:gap-20"></div>
+        </div>
+
+        <!-- metrics -->
+        <div class="mt-20 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/5 bg-white/5 md:grid-cols-4">
+          <div class="bg-ink-950 p-6 sm:p-8"><p class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">31%</p><p class="mt-1.5 text-sm text-zinc-500">Higher win rates</p></div>
+          <div class="bg-ink-950 p-6 sm:p-8"><p class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">4.2h</p><p class="mt-1.5 text-sm text-zinc-500">Saved per rep, weekly</p></div>
+          <div class="bg-ink-950 p-6 sm:p-8"><p class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">2.1×</p><p class="mt-1.5 text-sm text-zinc-500">Faster rep ramp</p></div>
+          <div class="bg-ink-950 p-6 sm:p-8"><p class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">18M+</p><p class="mt-1.5 text-sm text-zinc-500">Calls analyzed</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section id="features" class="relative py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="font-mono text-xs uppercase tracking-[0.2em] text-pulse-300">Features</p>
+          <h2 class="mt-4 text-3xl font-semibold tracking-[-0.03em] sm:text-5xl"><span class="text-gradient">Your best rep's instincts,<br class="hidden sm:block" /> on every call.</span></h2>
+          <p class="mt-5 text-base text-zinc-400 sm:text-lg">From the first hello to the signed contract, CallPulse turns raw conversations into revenue intelligence.</p>
+        </div>
+
+        <div id="featureGrid" class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+    </section>
+
+    <!-- ============ TESTIMONIAL ============ -->
+    <section class="relative py-12 sm:py-20">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <figure class="border-gradient relative rounded-3xl bg-gradient-to-b from-white/[.04] to-transparent p-8 text-center sm:p-14" style="border-radius:1.5rem">
+          <svg class="mx-auto h-8 w-8 text-pulse-400/60" viewBox="0 0 24 24" fill="currentColor"><path d="M9.6 6C6 7.6 4 10.4 4 14v4h6v-6H7c0-2.2 1.2-3.9 3.4-4.9zm10 0C16 7.6 14 10.4 14 14v4h6v-6h-3c0-2.2 1.2-3.9 3.4-4.9z"/></svg>
+          <blockquote class="mt-6 text-xl font-medium leading-relaxed tracking-tight text-white sm:text-2xl">
+            “We rolled CallPulse out to 60 AEs in a week. Within one quarter our win rate jumped from 22% to 29%, and my managers stopped spending Fridays listening to call recordings.”
+          </blockquote>
+          <figcaption class="mt-8 flex items-center justify-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-sm font-semibold text-white">MR</span>
+            <div class="text-left">
+              <p class="text-sm font-medium text-white">Maya Reynolds</p>
+              <p class="text-xs text-zinc-500">VP of Sales, Northbeam</p>
+            </div>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section id="pricing" class="relative py-24 sm:py-32">
+      <div class="glow pointer-events-none absolute inset-x-0 top-0 h-[500px] opacity-60"></div>
+      <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="font-mono text-xs uppercase tracking-[0.2em] text-pulse-300">Pricing</p>
+          <h2 class="mt-4 text-3xl font-semibold tracking-[-0.03em] sm:text-5xl"><span class="text-gradient">Simple pricing that pays for itself.</span></h2>
+          <p class="mt-5 text-base text-zinc-400 sm:text-lg">Per seat, billed monthly. Cancel anytime. One extra closed deal covers a year.</p>
+        </div>
+
+        <div class="mx-auto mt-16 grid max-w-4xl gap-5 md:grid-cols-2">
+          <!-- Starter -->
+          <div class="border-gradient flex flex-col rounded-2xl bg-ink-900/80 p-7 sm:p-8" style="border-radius:1rem">
+            <h3 class="text-sm font-medium text-zinc-300">Starter</h3>
+            <p class="mt-1 text-sm text-zinc-500">For small teams getting serious about calls.</p>
+            <p class="mt-6 flex items-baseline gap-1"><span class="text-5xl font-semibold tracking-tight text-white">$49</span><span class="text-sm text-zinc-500">/mo per seat</span></p>
+            <a href="#demo" class="mt-7 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-white/[.08]">Start free trial</a>
+            <ul class="mt-8 space-y-3.5 text-sm text-zinc-300" data-list="starter"></ul>
+          </div>
+
+          <!-- Pro -->
+          <div class="border-gradient border-gradient-accent relative flex flex-col rounded-2xl bg-gradient-to-b from-pulse-500/[.12] via-ink-900/90 to-ink-900/90 p-7 shadow-[0_30px_80px_-30px_rgba(99,102,241,.5)] sm:p-8" style="border-radius:1rem">
+            <span class="absolute right-6 top-6 rounded-full bg-pulse-500/20 px-2.5 py-1 text-[11px] font-medium text-pulse-300 ring-1 ring-inset ring-pulse-400/30">Most popular</span>
+            <h3 class="text-sm font-medium text-white">Pro</h3>
+            <p class="mt-1 text-sm text-zinc-400">For scaling revenue teams that coach to win.</p>
+            <p class="mt-6 flex items-baseline gap-1"><span class="text-5xl font-semibold tracking-tight text-white">$149</span><span class="text-sm text-zinc-500">/mo per seat</span></p>
+            <a href="#demo" class="mt-7 rounded-xl bg-gradient-to-b from-pulse-400 to-pulse-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_0_0_1px_rgba(129,140,248,.5),0_10px_30px_-10px_rgba(99,102,241,.9)] transition hover:brightness-110">Book a Demo</a>
+            <p class="mt-8 text-xs font-medium uppercase tracking-wider text-zinc-500">Everything in Starter, plus</p>
+            <ul class="mt-4 space-y-3.5 text-sm text-zinc-200" data-list="pro"></ul>
+          </div>
+        </div>
+
+        <p class="mt-10 text-center text-sm text-zinc-500">Need SSO, custom data residency, or 100+ seats? <a href="#demo" class="text-zinc-200 underline decoration-zinc-600 underline-offset-4 hover:decoration-zinc-300">Talk to sales</a></p>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section id="demo" class="relative px-4 pb-24 sm:px-6 sm:pb-32 lg:px-8">
+      <div class="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-ink-900 px-6 py-16 text-center sm:px-16 sm:py-20">
+        <div class="glow pointer-events-none absolute inset-0"></div>
+        <div class="grid-bg pointer-events-none absolute inset-0 opacity-70"></div>
+        <div class="relative">
+          <h2 class="text-3xl font-semibold tracking-[-0.03em] sm:text-5xl"><span class="text-gradient">Stop guessing. Start closing.</span></h2>
+          <p class="mx-auto mt-5 max-w-lg text-base text-zinc-400 sm:text-lg">See CallPulse on your own calls in a 20-minute walkthrough. Most teams are live the same day.</p>
+          <form class="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:flex-row" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Thanks — we’ll be in touch ✓';">
+            <label for="email" class="sr-only">Work email</label>
+            <input id="email" type="email" required placeholder="you@company.com" class="w-full rounded-xl border border-white/10 bg-white/[.04] px-4 py-3.5 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-pulse-400/60 focus:ring-4 focus:ring-pulse-500/15" />
+            <button type="submit" class="shrink-0 whitespace-nowrap rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-ink-950 transition hover:bg-zinc-200">Book a Demo</button>
+          </form>
+          <p class="mt-4 text-xs text-zinc-500">Free 14-day trial · Setup in 5 minutes · Works with Zoom, Meet & Teams</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="border-t border-white/5">
+    <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <div class="grid gap-10 md:grid-cols-[1.4fr_repeat(4,1fr)]">
+        <div>
+          <a href="#" class="flex items-center gap-2.5">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-pulse-400 to-fuchsia-500">
+              <svg viewBox="0 0 24 24" class="h-[18px] w-[18px] text-white" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+            </span>
+            <span class="text-[15px] font-semibold tracking-tight text-white">CallPulse<span class="text-zinc-500"> AI</span></span>
+          </a>
+          <p class="mt-4 max-w-xs text-sm leading-relaxed text-zinc-500">Conversation intelligence for revenue teams that refuse to leave deals to chance.</p>
+          <div class="mt-5 flex gap-2">
+            <a href="#" aria-label="X" class="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.5z"/></svg></a>
+            <a href="#" aria-label="LinkedIn" class="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 11-.01 5 2.5 2.5 0 01.01-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6V21h-4v-5.2c0-1.2 0-2.8-1.7-2.8s-2 1.3-2 2.7V21h-4z"/></svg></a>
+            <a href="#" aria-label="GitHub" class="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-white"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 011-2.7c-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 015 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 011 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg></a>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-8 sm:grid-cols-4 md:col-span-4">
+          <div><h4 class="text-sm font-medium text-white">Product</h4><ul class="mt-4 space-y-2.5 text-sm text-zinc-500"><li><a href="#features" class="hover:text-zinc-200">Features</a></li><li><a href="#pricing" class="hover:text-zinc-200">Pricing</a></li><li><a href="#" class="hover:text-zinc-200">Integrations</a></li><li><a href="#" class="hover:text-zinc-200">Changelog</a></li></ul></div>
+          <div><h4 class="text-sm font-medium text-white">Company</h4><ul class="mt-4 space-y-2.5 text-sm text-zinc-500"><li><a href="#" class="hover:text-zinc-200">About</a></li><li><a href="#customers" class="hover:text-zinc-200">Customers</a></li><li><a href="#" class="hover:text-zinc-200">Careers</a></li><li><a href="#" class="hover:text-zinc-200">Contact</a></li></ul></div>
+          <div><h4 class="text-sm font-medium text-white">Resources</h4><ul class="mt-4 space-y-2.5 text-sm text-zinc-500"><li><a href="#" class="hover:text-zinc-200">Blog</a></li><li><a href="#" class="hover:text-zinc-200">Docs</a></li><li><a href="#" class="hover:text-zinc-200">Sales playbooks</a></li><li><a href="#" class="hover:text-zinc-200">Status</a></li></ul></div>
+          <div><h4 class="text-sm font-medium text-white">Legal</h4><ul class="mt-4 space-y-2.5 text-sm text-zinc-500"><li><a href="#" class="hover:text-zinc-200">Privacy</a></li><li><a href="#" class="hover:text-zinc-200">Terms</a></li><li><a href="#" class="hover:text-zinc-200">Security</a></li><li><a href="#" class="hover:text-zinc-200">DPA</a></li></ul></div>
+        </div>
+      </div>
+      <div class="mt-14 flex flex-col items-start justify-between gap-4 border-t border-white/5 pt-8 text-xs text-zinc-600 sm:flex-row sm:items-center">
+        <p>© 2026 CallPulse AI, Inc. All rights reserved.</p>
+        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>All systems operational</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- Nav: blur on scroll + mobile menu ----------
+    const nav = document.getElementById('nav');
+    const onScroll = () => {
+      const s = window.scrollY > 8;
+      nav.classList.toggle('bg-ink-950/70', s);
+      nav.classList.toggle('backdrop-blur-xl', s);
+      nav.classList.toggle('border-b', s);
+      nav.classList.toggle('border-white/5', s);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+    const menuBtn = document.getElementById('menuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const menuIcon = document.getElementById('menuIcon');
+    const setMenu = (open) => {
+      mobileMenu.classList.toggle('hidden', !open);
+      menuBtn.setAttribute('aria-expanded', open);
+      menuIcon.innerHTML = open
+        ? '<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>'
+        : '<path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/>';
+      if (open) nav.classList.add('bg-ink-950/90', 'backdrop-blur-xl'); else onScroll();
+    };
+    menuBtn.addEventListener('click', () => setMenu(mobileMenu.classList.contains('hidden')));
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+
+    // ---------- Dashboard data ----------
+    const calls = [
+      {
+        title: 'Acme Logistics — Q1 expansion', short: 'Acme Logistics', stage: 'Discovery', stageCls: 'bg-emerald-500/10 text-emerald-400',
+        meta: 'Today · 34 min', end: '34:00', score: 87, delta: '+12', deltaCls: 'text-emerald-400', talk: 42,
+        sent: 'Positive', sentSub: '↑ trending up after pricing', sentCls: 'text-emerald-400', steps: 3, seed: 3,
+        transcript: [
+          ['Rep', 'Jordan (You)', '12:04', 'What happens to your team if routing delays keep slipping next quarter?'],
+          ['Prospect', 'Dana · Acme', '12:31', 'Honestly, we lose the Midwest contract. That’s about $2M ARR at stake.'],
+          ['Objection', 'Dana · Acme', '18:47', 'We looked at a competitor last year, and the rollout took forever.'],
+        ],
+        insights: [
+          ['emerald', 'Strong pain identified', '$2M ARR at risk — quantify in your follow-up.'],
+          ['amber', 'Objection: implementation time', 'Share the 7-day onboarding case study.'],
+          ['pulse', 'Missing stakeholder', 'CFO not yet engaged. Ask Dana for an intro.'],
+        ],
+      },
+      {
+        title: 'Brightline Health — Pricing review', short: 'Brightline Health', stage: 'Negotiation', stageCls: 'bg-amber-500/10 text-amber-400',
+        meta: 'Today · 27 min', end: '27:00', score: 64, delta: '−5', deltaCls: 'text-rose-400', talk: 61,
+        sent: 'Neutral', sentSub: '→ flat since discount ask', sentCls: 'text-zinc-400', steps: 2, seed: 7,
+        transcript: [
+          ['Prospect', 'Priya · Brightline', '06:12', 'The Pro tier is great, but procurement wants 20% off for a 2-year term.'],
+          ['Rep', 'Jordan (You)', '06:40', 'Totally fair. Let me walk through what that commitment unlocks for you.'],
+          ['Objection', 'Priya · Brightline', '14:02', 'I’m not sure security will approve a new vendor this quarter.'],
+        ],
+        insights: [
+          ['amber', 'Rep talk ratio high (61%)', 'Ask more open questions — target under 45%.'],
+          ['amber', 'Security blocker', 'Send SOC 2 report proactively today.'],
+          ['emerald', 'Buying signal', '“2-year term” mentioned — anchor on annual value.'],
+        ],
+      },
+      {
+        title: 'Vantage Robotics — Intro call', short: 'Vantage Robotics', stage: 'Qualification', stageCls: 'bg-sky-500/10 text-sky-400',
+        meta: 'Yesterday · 19 min', end: '19:00', score: 78, delta: '+4', deltaCls: 'text-emerald-400', talk: 38,
+        sent: 'Positive', sentSub: '↑ high engagement', sentCls: 'text-emerald-400', steps: 4, seed: 11,
+        transcript: [
+          ['Rep', 'Sam (You)', '02:15', 'How are your managers reviewing calls today?'],
+          ['Prospect', 'Leo · Vantage', '02:44', 'They aren’t, really. Maybe one call per rep per month, if that.'],
+          ['Prospect', 'Leo · Vantage', '09:30', 'If this plugs into HubSpot, we could pilot it with the whole team.'],
+        ],
+        insights: [
+          ['emerald', 'Clear budget & timeline', 'Pilot proposed for next month.'],
+          ['pulse', 'Integration requirement', 'HubSpot sync — book a technical demo.'],
+          ['emerald', 'Great discovery', 'Rep asked 11 open questions. Share as a coaching clip.'],
+        ],
+      },
+    ];
+
+    const dotColor = { emerald: 'bg-emerald-400', amber: 'bg-amber-400', pulse: 'bg-pulse-400' };
+    const speakerCls = { Rep: 'text-pulse-300', Prospect: 'text-zinc-300', Objection: 'text-amber-300' };
+    const $ = (id) => document.getElementById(id);
+
+    function rand(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+    function renderWave(seed) {
+      const r = rand(seed);
+      const n = window.innerWidth < 640 ? 48 : 90;
+      let html = '';
+      for (let i = 0; i < n; i++) {
+        const v = r();
+        const color = v > 0.93 ? 'bg-amber-400' : (Math.floor(i / 6 + seed) % 2 ? 'bg-pulse-400' : 'bg-zinc-500');
+        const h = 18 + Math.round(r() * 82);
+        html += `<span class="${color} flex-1 rounded-full opacity-80 animate-wave origin-center" style="height:${h}%;animation-delay:${(-r() * 1.2).toFixed(2)}s;animation-duration:${(1 + r()).toFixed(2)}s"></span>`;
+      }
+      $('waveform').innerHTML = html;
+    }
+
+    let active = 0;
+    function selectCall(i) {
+      active = i;
+      const c = calls[i];
+      $('callTitle').textContent = c.title;
+      $('callMeta').textContent = c.meta;
+      $('callStage').textContent = c.stage;
+      $('callStage').className = `rounded px-1.5 py-0.5 font-medium ${c.stageCls}`;
+      $('waveEnd').textContent = c.end;
+      $('statScore').textContent = c.score;
+      $('statScoreDelta').textContent = c.delta;
+      $('statScoreDelta').className = `text-[11px] font-medium ${c.deltaCls}`;
+      $('statScoreBar').style.width = c.score + '%';
+      $('statTalk').textContent = c.talk + '%';
+      $('statTalkBar').style.width = c.talk + '%';
+      $('statSent').textContent = c.sent;
+      $('statSentSub').textContent = c.sentSub;
+      $('statSentSub').className = `mt-1.5 text-[11px] ${c.sentCls}`;
+      $('statSteps').textContent = c.steps;
+
+      $('transcript').innerHTML = c.transcript.map(([type, who, t, text]) => `
+        <div class="flex gap-3">
+          <span class="w-11 shrink-0 pt-0.5 font-mono text-[10px] text-zinc-600">${t}</span>
+          <div class="min-w-0">
+            <p class="text-[11px] font-medium ${speakerCls[type]}">${who}${type === 'Objection' ? ' <span class="ml-1 rounded bg-amber-400/10 px-1 py-px text-[10px] text-amber-300">Objection</span>' : ''}</p>
+            <p class="mt-0.5 text-zinc-400">${text}</p>
+          </div>
+        </div>`).join('');
+
+      $('insights').innerHTML = c.insights.map(([col, head, body]) => `
+        <li class="flex gap-2.5">
+          <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${dotColor[col]}"></span>
+          <div><p class="font-medium text-zinc-100">${head}</p><p class="text-zinc-400">${body}</p></div>
+        </li>`).join('');
+
+      renderWave(c.seed);
+
+      $('callList').innerHTML = calls.map((x, j) => `
+        <button data-call="${j}" class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition ${j === i ? 'bg-white/[.06] text-white' : 'text-zinc-500 hover:bg-white/[.03] hover:text-zinc-300'}">
+          <span class="h-1.5 w-1.5 rounded-full ${x.score >= 75 ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
+          <span class="truncate">${x.short}</span>
+          <span class="ml-auto font-mono text-[10px] tabular-nums text-zinc-600">${x.score}</span>
+        </button>`).join('');
+
+      $('callTabs').innerHTML = calls.map((x, j) => `
+        <button data-call="${j}" class="shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${j === i ? 'border-pulse-400/40 bg-pulse-500/15 text-white' : 'border-white/10 text-zinc-400'}">${x.short}</button>`).join('');
+    }
+
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-call]');
+      if (b) { selectCall(+b.dataset.call); userPicked = true; }
+    });
+    let userPicked = false;
+    selectCall(0);
+    // gentle auto-cycle until the visitor interacts
+    setInterval(() => { if (!userPicked && !document.hidden) selectCall((active + 1) % calls.length); }, 6000);
+    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => renderWave(calls[active].seed), 150); });
+
+    // ---------- Logos (fictional brands, rendered as wordmarks) ----------
+    const logos = [
+      ['Northbeam', '<path d="M4 20V4l16 16V4" stroke-width="2.6"/>'],
+      ['Ledgerly', '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 8v8h6"/>'],
+      ['Quantive', '<circle cx="11" cy="11" r="7"/><path d="M16 16l4 4"/>'],
+      ['Stackwise', '<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/>'],
+      ['Orbitra', '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5"/>'],
+      ['Helixon', '<path d="M7 3c0 6 10 6 10 12s-10 3-10 6M17 3c0 6-10 6-10 12"/>'],
+      ['Cobaltly', '<path d="M12 2l9 5v10l-9 5-9-5V7z"/>'],
+      ['Driftwave', '<path d="M2 14c3-4 6-4 9 0s6 4 9 0M2 9c3-4 6-4 9 0s6 4 9 0"/>'],
+    ];
+    const logoHtml = logos.map(([name, svg]) => `
+      <div class="flex shrink-0 items-center gap-2 text-zinc-500 transition hover:text-zinc-200">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>
+        <span class="text-lg font-semibold tracking-tight">${name}</span>
+      </div>`).join('');
+    $('logoTrack').innerHTML = logoHtml + logoHtml;
+
+    // ---------- Features ----------
+    const features = [
+      ['Real-time call transcription', 'Crystal-clear transcripts in 30+ languages with speaker detection, ready the moment you hang up.', '<path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3"/>'],
+      ['AI deal scoring', 'Every opportunity gets a 0–100 health score based on 40+ conversation signals — not rep optimism.', '<path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/>'],
+      ['Objection detection', 'Flags pricing, timing and competitor objections instantly, with the rebuttals your top closers use.', '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>'],
+      ['Automated coaching', 'Personalized scorecards and bite-sized clips for every rep. Managers coach 5× more calls in half the time.', '<circle cx="12" cy="8" r="5"/><path d="M8.2 12.9L7 22l5-3 5 3-1.2-9.1"/>'],
+      ['One-click CRM sync', 'Notes, next steps and MEDDPICC fields push straight to Salesforce or HubSpot. Zero data entry.', '<path d="M21 12a9 9 0 01-15.4 6.4L3 16M3 12a9 9 0 0115.4-6.4L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/>'],
+      ['Enterprise-grade security', 'SOC 2 Type II, GDPR & HIPAA-ready. Your data is encrypted end-to-end and never used to train models.', '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>'],
+    ];
+    $('featureGrid').innerHTML = features.map(([t, d, icon]) => `
+      <div class="feature border-gradient card-hover group relative overflow-hidden rounded-2xl bg-ink-900/70 p-6 sm:p-7" style="border-radius:1rem">
+        <div class="spot pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div class="relative">
+          <span class="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-gradient-to-b from-white/[.08] to-white/[.02] text-pulse-300">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+          </span>
+          <h3 class="mt-5 text-base font-semibold tracking-tight text-white">${t}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-zinc-400">${d}</p>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('.feature').forEach(el => el.addEventListener('mousemove', (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--x', (e.clientX - r.left) + 'px');
+      el.style.setProperty('--y', (e.clientY - r.top) + 'px');
+    }));
+
+    // ---------- Pricing lists ----------
+    const check = '<svg class="mt-0.5 h-4 w-4 shrink-0 text-pulse-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+    const lists = {
+      starter: ['Up to 500 recorded calls / month', 'AI transcription & summaries', 'Talk-ratio & sentiment analytics', 'Zoom, Google Meet & Teams', 'HubSpot integration', 'Email support'],
+      pro: ['Unlimited calls & storage', 'AI deal scoring & risk alerts', 'Objection detection & battlecards', 'Automated rep coaching & scorecards', 'Salesforce sync + custom fields', 'Priority support & onboarding'],
+    };
+    document.querySelectorAll('[data-list]').forEach(ul => {
+      ul.innerHTML = lists[ul.dataset.list].map(f => `<li class="flex gap-3">${check}<span>${f}</span></li>`).join('');
+    });
+  </script>
+</body>
+</html>
